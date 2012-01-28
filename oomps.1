@@ -29,7 +29,33 @@ display this help and exit
 \fB\-\-version\fR
 output version information and exit
 .SH OUTPUT
-TODO: Describe output format.
+For the --score and --adj commands, the output is a tab-separated list, one line per process, of the following format:
+.PP
+<PID> <SCORE/ADJUSTMENT> [<CMDLINE>]
+.PP
+PID: The first field is the PID of the process.
+.PP
+SCORE/ADJUSTMENT: The second field is the score, for the --score command, and the adjustment, for the --adj command.
+.PP
+CMDLINE: If the -v options is given, the third field is the process cmdline.
+.PP
+If there are multiples lines, they are sorted on the second field (the score or adjustment).
+.SH EXAMPLES
+$ oomps -av
+.br
+453    -17   udevd --daemon
+.br
+1143   -17   udevd --daemon
+.br
+1144   -17   udevd --daemon
+.PP
+$ oomps -sv | head -n 3
+.br
+1      566011   /sbin/init
+.br
+1305   453335   java -Dzookeeper.log.dir=. ...
+.br
+1727   441983   gnome-session
 .SH SEE ALSO
 .BR proc (5)
 .SH AUTHOR
