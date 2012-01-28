@@ -1,0 +1,142 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+__author__ = u'Björn Edström <be@bjrn.se>'
+__copyright__ = 'Copyright (c) 2012 Björn Edström <be@bjrn.se>'
+__license__ = 'BSD'
+__date__ = '2012-01-28'
+__version__ = '0.1'
+
+import errno
+import optparse
+import os
+import sys
+
+ADJUSTMENTS = {
+    'old': {
+        'min': -17,
+        'max': 15,
+        'disable': -17,
+        'prefer': 8,
+        'protect': -8,
+        },
+    'new': {
+        'min': -1000,
+        'max': 1000,
+        'disable': -1000,
+        'prefer': 500,
+        'protect': -500,
+        }
+    }
+
+# XXX (bjorn): Duplicated in oomps
+def kernel_oom_format():
+    """Figure out if the computer has an old or new kernel.
+
+    OOM killer was rewritten in 2010 and shipped in Linux kernel
+    2.6.36.
+
+    Returns the string "new" if the kernel has the new OOM killer,
+    otherwise it will return the string "old".
+    """
+
+    if not os.path.exists('/proc/self/oom_score'):
+        raise ValueError('oom_score not in proc')
+    if os.path.exists('/proc/self/oom_score_adj'):
+        return 'new'
+    elif os.path.exists('/proc/self/oom_adj'):
+        return 'old'
+    raise ValueError('oom_adj or oom_score_adj not in proc')
+
+def usage():
+    usage = '%prog [opts] get|set|enable|disable|prefer|protect PID [val]'
+    return usage
+
+def version():
+    version = '''%%prog %s
+%s
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+''' % (__version__, __copyright__)
+    return version
+
+def main():
+    parser = optparse.OptionParser(usage=usage(), version=version())
+    parser.add_option('-d', '--dry', action='store_true',
+                      help='Dry run, do not write anything')
+    parser.disable_interspersed_args()
+    opts, args = parser.parse_args()
+
+    try:
+        cmd, pid = args[0], args[1]
+    except:
+        parser.error('No COMMAND or PID given')
+
+    if cmd not in ('set', 'prefer', 'protect', 'disable', 'enable', 'get'):
+        parser.error('Invalid command %s' % cmd)
+
+    try:
+        pid = int(pid)
+    except ValueError:
+        parser.error('PID must be integer')
+
+    format = kernel_oom_format()
+    adjust = ADJUSTMENTS.get(format)
+
+    val = None
+    if cmd == 'disable':
+        val = adjust['disable']
+    elif cmd == 'enable':
+        val = 0
+    elif cmd == 'set':
+        try:
+            val = int(args[2])
+        except:
+            parser.error('set command requires integer argument')
+    elif cmd == 'prefer':
+        val = adjust['prefer']
+    elif cmd == 'protect':
+        val = adjust['protect']
+    elif cmd == 'get':
+        val = 0
+
+    if val < adjust['min'] or val > adjust['max']:
+        print >> sys.stderr, 'error: valid adjustments are %d to %d inclusive' \
+            % (adjust['min'], adjust['max'])
+        sys.exit(1)
+
+    if format == 'old':
+        adj_file = 'oom_adj'
+    else:
+        adj_file = 'oom_score_adj'
+    adj_path = '/proc/%s/%s' % (pid, adj_file)
+
+    if cmd == 'get':
+        try:
+            fobj = file(adj_path, 'r')
+            print fobj.read().strip()
+            fobj.close()
+        except IOError, e:
+            print >> sys.stderr, 'PID %s does not exist' % (pid,)
+            sys.exit(1)
+        sys.exit(0)
+
+    if opts.dry:
+        print 'dry run: not writing %s to %s' % (val, adj_path)
+        sys.exit(0)
+
+    try:
+        fobj = file(adj_path, 'w')
+        fobj.write(str(val))
+        fobj.close()
+    except IOError, e:
+        if e.errno == errno.ENOENT:
+            print >> sys.stderr, 'PID %s does not exist' % (pid,)
+        else:
+            print >> sys.stderr, 'error: %s' % (str(e),)
+        sys.exit(1)
+
+    sys.exit(0)
+
+if __name__ == '__main__':
+    main()

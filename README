@@ -13,7 +13,7 @@ Show badness scores. Higher badness means more likely to get killed.
 
     $ oomps -s
 
-Show adjustments:
+Show adjustments. See "man proc" for more information.
 
     $ oomps -a
 
@@ -31,6 +31,32 @@ Examples:
     453    -17   udevd --daemon
     1143   -17   udevd --daemon
     1144   -17   udevd --daemon
+
+oomset
+------
+
+Adjust OOM killer scoring for a particular process.
+
+Usage: oomset [opts] get|set|enable|disable|prefer|protect PID [val]
+
+"disable" informs the kernel to avoid killing the specified PID. Use
+with care.
+
+    $ pgrep -f emacs | xargs oomset disable
+
+"enable" resets the adjustment to neutral: the kernel will not adjust
+the scoring.
+
+"set" sets to a raw score. See "man proc" about oom_adj or
+oom_score_adj (depending on kernel) for details. "get" can be used to
+get the raw score, or you can use oomps -a.
+
+"prefer" and "protect" are convience commands that will set the
+adjustment value to something reasonable, neutral to the kernel
+version. protect will adjust the process to be less likely to be
+killed, and prefer will increase the likelihood.
+
+    $ oomset prefer [PID for web browser]
 
 More information
 ----------------
