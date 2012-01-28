@@ -1,0 +1,184 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+__author__ = u'Björn Edström <be@bjrn.se>'
+__copyright__ = 'Copyright (c) 2012 Björn Edström <be@bjrn.se>'
+__license__ = 'BSD'
+__date__ = '2012-01-28'
+__version__ = '0.1'
+
+import operator
+import optparse
+import os
+import signal
+import sys
+
+def getpids():
+    """Yields currently active PID:s.
+
+    Read from /proc.
+    """
+
+    for dir in os.listdir('/proc'):
+        try:
+            pid = int(dir)
+        except:
+            continue
+        yield pid
+
+def read_proc(pid, name):
+    """Convience function to read /proc/<pid>/<name>.
+    """
+
+    path = os.path.join('/proc', str(pid), name)
+    fobj = file(path)
+    try:
+        return fobj.read().strip()
+    finally:
+        fobj.close()
+
+def kernel_oom_format():
+    """Figure out if the computer has an old or new kernel.
+
+    OOM killer was rewritten in 2010 and shipped in Linux kernel
+    2.6.36.
+
+    Returns the string "new" if the kernel has the new OOM killer,
+    otherwise it will return the string "old".
+    """
+
+    if not os.path.exists('/proc/self/oom_score'):
+        raise ValueError('oom_score not in proc')
+    if os.path.exists('/proc/self/oom_score_adj'):
+        return 'new'
+    elif os.path.exists('/proc/self/oom_adj'):
+        return 'old'
+    raise ValueError('oom_adj or oom_score_adj not in proc')
+
+def get_proc_info_for_pid(format, pid):
+    """For the given pid and format (see kernel_oom_format()) returns
+    adict with information about the pid: the oom score, oom
+    adjustment and cmdline.
+    """
+
+    try:
+        info = {}
+        info['pid'] = pid
+        info['oom_score'] = int(read_proc(pid, 'oom_score'))
+        if format == 'new':
+            info['oom_score_adj'] = int(read_proc(pid, 'oom_score_adj'))
+        elif format == 'old':
+            info['oom_adj'] = int(read_proc(pid, 'oom_adj'))
+        info['cmdline'] = read_proc(pid, 'cmdline').replace('\x00', ' ').strip()
+        return info
+    except IOError:
+        return None
+
+def get_proc_info(format):
+    """Convience function to get information about all running
+    processes. See get_proc_info_for_pid().
+    """
+
+    assert format in ('old', 'new')
+    infos = []
+    for pid in getpids():
+        info = get_proc_info_for_pid(format, pid)
+        if info is not None:
+            infos.append(info)
+    return infos
+
+def usage():
+    usage = 'usage: %prog [options] [PID]'
+    return usage
+
+def version():
+    version = '''%%prog %s
+%s
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+''' % (__version__, __copyright__)
+    return version
+
+def main():
+    def on_pipe(*args):
+        pass
+    signal.signal(signal.SIGPIPE, on_pipe)
+
+    parser = optparse.OptionParser(usage=usage(), version=version())
+    parser.add_option('-s', '--score', action='store_true',
+                      help='Show the "badness" score for each process. '
+                      'Higher badness means higher chance of being '
+                      'targeted by the OOM killer')
+    parser.add_option('-a', '--adj', action='store_true',
+                      help='Show the adjustment for each process')
+
+    parser.add_option('-A', '--all', action='store_true',
+                      help='Show all processes. The default is to filter '
+                      'out boring information, such as processes with '
+                      'adjustment 0 for the -a option')
+    parser.add_option('-v', '--verbose', action='store_true',
+                      help='Be verbose. This includes the program cmdline '
+                      'in addition to the PID')
+    opts, args = parser.parse_args()
+
+    if opts.adj is not None and opts.score is not None:
+        parser.error('-s and -a are mutually exlusive')
+
+    try:
+        format = kernel_oom_format()
+    except Exception, e:
+        print >> sys.stderr, 'error: %s' % (str(e),)
+        sys.exit(1)
+
+    pid = None
+    if args:
+        try:
+            pid = int(args[0])
+        except ValueError, e:
+            parser.error('PID must be integer')
+
+    if pid is not None:
+        proc_info = get_proc_info_for_pid(format, pid)
+        if proc_info is None:
+            print >> sys.stderr, 'error: PID %s does not exist' % (pid,)
+            sys.exit(1)
+        proc_infos = [proc_info]
+    else:
+        proc_infos = get_proc_info(format)
+
+    def cmd_score():
+        for info in sorted(proc_infos,
+                           key=operator.itemgetter('oom_score'),
+                           reverse=True):
+            line = []
+            line.append(str(info['pid']))
+            line.append(str(info['oom_score']))
+            if opts.verbose:
+                line.append(info['cmdline'])
+            print '\t'.join(line)
+
+    def cmd_adj():
+        if format == 'new':
+            adj_key = 'oom_score_adj'
+        else:
+            adj_key = 'oom_adj'
+
+        for info in sorted(proc_infos,
+                           key=operator.itemgetter(adj_key),
+                           reverse=True):
+            if not opts.all and info[adj_key] == 0:
+                continue
+            line = []
+            line.append(str(info['pid']))
+            line.append(str(info[adj_key]))
+            if opts.verbose:
+                line.append(info['cmdline'])
+            print '\t'.join(line)
+
+    if opts.adj is not None:
+        cmd_adj()
+    else:
+        cmd_score()
+
+if __name__ == '__main__':
+    main()
