@@ -1,0 +1,44 @@
+.\" -*- nroff -*-
+.TH OOMSET 1 "January 29, 2012"
+.SH OOMSET
+oomset \- modify OOM killer adjustment for a specific process.
+.SH SYNOPSIS
+.B oomset
+.RI [ OPTIONS ]
+.RI get|set|enable|disable|prefer|protect
+.RI PID
+.RI [ VAL ]
+.SH DESCRIPTION
+oomset modifies the OOM adjustment score for a specified process, making it more or less likely the specified process will be targeted by the OOM killer. The different commands are:
+.TP
+\fBdisable\fR - Disable the killing of this process. This command should be used with care; instead it's recommended to use the \fBprefer\fR or \fBset\fR command.
+.TP
+\fBenable\fR - Reset the adjustment score to 0, meaning the OOM killer is neutral (neither prefer or avoids) to this process.
+.TP
+\fBprefer\fR - This convience command sets the adjustment value to something "reasonably" high, making this process more likely to be killed by the OOM killer without disabling it completely.
+.TP
+\fBprotect\fR - Similar to the \fBprefer\fR command but in the other direction; the process will be less likely to be killed by the OOM killer.
+.TP
+\fBset VAL\fR - Sets oom_adj or oom_score_adj to the raw value VAL.
+.SH OPTIONS
+.TP
+\fB\-d\fR, \fB\-\-dry\fR
+Dry run, write changes to standard output only.
+.TP
+\fB\-\-help\fR
+display this help and exit
+.TP
+\fB\-\-version\fR
+output version information and exit
+.SH EXAMPLES
+Prevent the kernel from killing emacs processes if out of memory:
+.br
+$ pgrep -f emacs | xargs oomset disable
+.PP
+Inform the kernel to prefer killing the web browser if out of memory:
+.br
+$ oomset prefer [PID for web browser]
+.SH SEE ALSO
+.BR proc (5), oomset (1)
+.SH AUTHOR
+oomset was written by Bjorn Edstrom <be@bjrn.se>.
