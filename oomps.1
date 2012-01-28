@@ -1,0 +1,36 @@
+.\" -*- nroff -*-
+.TH OOMPS 1 "January 28, 2012"
+.SH OOMPS
+oomps \- lists OOM killer information about a snapshot of current processes (like "ps").
+.SH SYNOPSIS
+.B oomps
+.RI [ OPTIONS ]
+.RI [ PID ]
+.SH DESCRIPTION
+Reads OOM score and adjustment for all process, or, if PID is given, that specific process.
+.PP
+If no options is given, the default is to use the --score option.
+.TP
+\fB\-s\fR, \fB\-\-score\fR
+Show the "badness" score for each process. Higher badness means higher chance of being targeted by the OOM killer.
+.TP
+\fB\-a\fR, \fB\-\-adj\fR
+Show the adjustment for each process.
+.TP
+\fB\-A\fR, \fB\-\-all\fR
+Show all processes. The default is to filter out boring information, such as processes with adjustment 0 for the -a option.
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Be verbose. This includes the program cmdline in addition to the PID.
+.TP
+\fB\-\-help\fR
+display this help and exit
+.TP
+\fB\-\-version\fR
+output version information and exit
+.SH OUTPUT
+TODO: Describe output format.
+.SH SEE ALSO
+.BR proc (5)
+.SH AUTHOR
+oomps was written by Bjorn Edstrom <be@bjrn.se>.
