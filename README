@@ -21,7 +21,7 @@ See --help for more information.
 
 Examples:
 
-    $ oomps -sv | head -n 3
+    $ oomps -sv | head -n 4
     1      566011   /sbin/init
     1305   453335   java -Dzookeeper.log.dir=. ...
     1727   441983   gnome-session
