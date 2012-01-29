@@ -1,0 +1,14 @@
+Source: oomtools
+Section: utils
+Priority: extra
+Maintainer: Björn Edström <be@bjrn.se>
+Build-Depends: debhelper (>= 7)
+Standards-Version: 3.8.3
+
+Package: oomtools
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, python
+Description: Tools for administrating the Linux kernel OOM killer.
+ Package contains two utilites. oomset modifies OOM killer adjustment
+ for a specific process. oomps lists OOM killer information about a
+ snapshot of current processes (like "ps").
