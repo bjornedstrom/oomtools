@@ -17,8 +17,8 @@ ADJUSTMENTS = {
         'min': -17,
         'max': 15,
         'disable': -17,
-        'prefer': 8,
-        'protect': -8,
+        'prefer': 7,
+        'protect': -7,
         },
     'new': {
         'min': -1000,
