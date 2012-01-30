@@ -57,7 +57,7 @@ def kernel_oom_format():
 
 def get_proc_info_for_pid(format, pid):
     """For the given pid and format (see kernel_oom_format()) returns
-    adict with information about the pid: the oom score, oom
+    a dict with information about the pid: the oom score, oom
     adjustment and cmdline.
     """
 
@@ -175,10 +175,14 @@ def main():
                 line.append(info['cmdline'])
             print '\t'.join(line)
 
-    if opts.adj is not None:
-        cmd_adj()
-    else:
-        cmd_score()
+    try:
+        if opts.adj is not None:
+            cmd_adj()
+        else:
+            cmd_score()
+    except IOError:
+        # broken pipe
+        pass
 
 if __name__ == '__main__':
     main()
